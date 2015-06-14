@@ -1,0 +1,88 @@
+<html>
+    <head>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/2.3.0/knockout-debug.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/rxjs/2.5.3/rx.all.js"></script>
+        <script src="tribe.pubsub.js"></script>
+    </head>
+    <body onload="start()">
+        <input data-bind="value: value">
+        <button data-bind="click: publish">Publish</button>
+        <span data-bind="text: messages.select(function (x) {return ko.unwrap(x.value);}.bind(this))"></span>
+        <span data-bind="text: messages.where(function (x) {return ko.unwrap(x.value[0] === &apos;a&apos;);}.bind(this)).select(function (x) {return ko.unwrap(++count);}.bind(this))"></span>
+        <ul data-bind="foreach: messages.where(function (x) {return ko.unwrap(x.value.length &gt; 2);}.bind(this))">
+            <li data-bind="html: value">
+        </li></ul>
+    </body>
+    <script>
+        function start() {
+            var pubsub = new Tribe.PubSub(),
+                source = createRxSource(pubsub),
+                model = {
+                    value: ko.observable(),
+                    publish: function () { pubsub.publish('topic', { value: model.value() }) },
+                    messages: source,
+                    count: 0
+                }
+
+            messages = source
+            ko.applyBindings(model)
+
+            function createRxSource(pubsub) {
+                return Rx.Observable.create(function (observer) {
+                    pubsub.subscribe('*', function (data) {
+                        observer.onNext(data)
+                    })
+                })
+            }
+        }
+
+        Rx.Observable.prototype.asArray = function() {
+            var result = ko.observableArray()
+            this.subscribe(function (value) {
+                result.push(value)
+            })
+            return result
+        }
+
+        Rx.Observable.prototype.asScalar = function() {
+            var result = ko.observable()
+            this.subscribe(function (value) {
+                result(value)
+            })
+            return result
+        }
+
+        var text2DomDataKey = '__tribe__textDomDataKey__',
+            oldTextBinding = ko.bindingHandlers.text
+        ko.bindingHandlers.text = {
+            init: function (element, valueAccessor) {
+                var value = valueAccessor()
+                if(value && value.asScalar) value = value.asScalar()
+                ko.utils.domData.set(element, text2DomDataKey, value)
+            },
+            update: function (element, valueAccessor) {
+                return oldTextBinding.update(element, function () { return ko.utils.domData.get(element, text2DomDataKey) })
+            }
+        }
+
+        var oldForeachBinding = ko.bindingHandlers.foreach
+        ko.bindingHandlers.foreach = {
+            init: function(element, valueAccessor) {
+                return oldForeachBinding.init(element, makeForeachValueAccessor(valueAccessor));
+            },
+            update: function(element, valueAccessor, allBindingsAccessor, viewModel, bindingContext) {
+                return oldForeachBinding.update(element, makeForeachValueAccessor(valueAccessor), allBindingsAccessor, viewModel, bindingContext);
+            },
+            makeTemplateValueAccessor: oldForeachBinding.makeTemplateValueAccessor
+        }
+
+        function makeForeachValueAccessor(valueAccessor) {
+            var value = valueAccessor()
+            if(value && value.asArray) value = value.asArray()
+            return function () {
+                return value
+            }
+        }
+    </script>
+</html>
+

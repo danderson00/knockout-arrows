@@ -1,0 +1,9 @@
+var rewrite = require('..'),
+    content = ''
+
+// should probably be a transform stream, but this was the first solution I found, and we need the whole string anyways
+process.stdin.resume()
+process.stdin.on('data', function(buf) { content += buf.toString(); })
+process.stdin.on('end', function() {
+    console.log(rewrite(content))
+})
