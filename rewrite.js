@@ -11,7 +11,7 @@ module.exports = function (stringFromMarkup) {
 			}
 		}
 	})
-	return escodegen.generate(ast, { format: { newline: '', indent: { style: '' } } });
+	return escodegen.generate(ast, { format: { newline: '', semicolons: false, indent: { style: '' } } });
 }
 
 function rewriteArrowFunctionExpressionNode(node) {

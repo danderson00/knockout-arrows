@@ -1,6 +1,6 @@
 {
   "name": "knockout-arrows",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Rewrites knockout templates on the server to enable the use of arrow functions.",
   "dependencies": {
     "cheerio": "^0.19.0",
